@@ -1,0 +1,134 @@
+apiVersion: rhdh.redhat.com/v1alpha3
+kind: Backstage
+metadata:
+  name: ai-rolling-demo
+spec:
+  application:
+    image: quay.io/rhdh/rhdh-hub-rhel9:1.6
+    imagePullSecrets:
+      - quay-pull-secret
+    appConfig:
+      configMaps:
+        - name: app-config-rhdh
+      mountPath: /opt/app-root/src
+    dynamicPluginsConfigMapName: dynamic-plugins-rhdh
+    extraEnvs:
+      secrets:
+        - name: rhdh-secrets
+        - name: github-secrets
+        - name: kubernetes-secrets
+        - name: keycloak-secrets
+        - name: argocd-secrets
+    extraEnvVars:
+      - name: NODE_TLS_REJECT_UNAUTHORIZED
+        value: 0
+    replicas: 1
+    route:
+      enabled: true
+  database:
+    enableLocalDb: true
+  deployment:
+    patch:
+      spec:
+        template:
+          spec:
+            containers:
+              - name: location
+                env:
+                - name: NORMALIZER_FORMAT
+                  value: JsonArrayFormat
+                - name: POD_IP
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: status.podIP
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                envFrom:
+                - secretRef:
+                    name: rhdh-rhoai-bridge-token
+                - secretRef:
+                    name: ai-rh-developer-hub-env
+                image: quay.io/redhat-ai-dev/model-catalog-location-service:latest
+                imagePullPolicy: Always
+                ports:
+                - containerPort: 9090
+                  name: location
+                  protocol: TCP
+                startupProbe:
+                  httpGet:
+                    path: /.backstage/health/v1/liveness
+                    port: 7007
+                    scheme: HTTP
+                  initialDelaySeconds: 30
+                  timeoutSeconds: 4
+                  periodSeconds: 20
+                  successThreshold: 1
+                  failureThreshold: 3
+                volumeMounts:
+                - mountPath: /opt/app-root/src/dynamic-plugins-root
+                  name: dynamic-plugins-root
+                workingDir: /opt/app-root/src
+              - name: storage-rest
+                env:
+                - name: NORMALIZER_FORMAT
+                  value: JsonArrayFormat
+                - name: STORAGE_TYPE
+                  value: ConfigMap
+                - name: PUSH_TO_RHDH
+                  value: "False"
+                - name: POD_IP
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: status.podIP
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                envFrom:
+                - secretRef:
+                    name: rhdh-rhoai-bridge-token
+                - secretRef:
+                    name: ai-rh-developer-hub-env
+                image: quay.io/redhat-ai-dev/model-catalog-storage-rest:latest
+                imagePullPolicy: Always
+                ports:
+                - containerPort: 9090
+                  name: location
+                  protocol: TCP
+                volumeMounts:
+                - mountPath: /opt/app-root/src/dynamic-plugins-root
+                  name: dynamic-plugins-root
+                workingDir: /opt/app-root/src
+              - name: rhoai-normalizer
+                env:
+                - name: NORMALIZER_FORMAT
+                  value: JsonArrayFormat
+                - name: MR_ROUTE
+                  value: rhoai-model-registries-modelregistry-public-rest
+                - name: POLLING_INTERVAL
+                  value: 10s
+                - name: POD_IP
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: status.podIP
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                envFrom:
+                - secretRef:
+                    name: rhdh-rhoai-bridge-token
+                - secretRef:
+                    name: ai-rh-developer-hub-env
+                image: quay.io/redhat-ai-dev/model-catalog-rhoai-normalizer:latest
+                imagePullPolicy: Always
+                ports:
+                - containerPort: 9090
+                  name: location
+                  protocol: TCP
+                volumeMounts:
+                - mountPath: /opt/app-root/src/dynamic-plugins-root
+                  name: dynamic-plugins-root
+                workingDir: /opt/app-root/src

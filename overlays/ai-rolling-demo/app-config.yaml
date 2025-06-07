@@ -1,0 +1,183 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: app-config-rhdh
+  labels:
+    rhdh.redhat.com/ext-config-sync: 'true'
+  annotations:
+    rhdh.redhat.com/backstage-name: developer-hub
+data:
+  app-config-rhdh.yaml: |
+    app:
+      title: AI Rolling Demo Developer Hub
+      baseUrl: "${RHDH_BASE_URL}"
+    auth:
+      environment: production
+      session:
+        secret: "${BACKEND_SECRET}"
+      providers:
+        oidc:
+          production:
+            metadataUrl: "${KEYCLOAK_METADATA_URL}"
+            clientId: "${KEYCLOAK_CLIENT_ID}"
+            clientSecret: "${KEYCLOAK_CLIENT_SECRET}"
+            callbackUrl: "${RHDH_CALLBACK_URL}"
+            prompt: auto
+            signIn:
+              resolvers:
+                - resolver: preferredUsernameMatchingUserEntityName
+    backend:
+      auth:
+        externalAccess:
+          - type: static
+            options:
+              token: ${ADMIN_TOKEN}
+              subject: admin-curl-access
+        keys:
+          - secret: "${BACKEND_SECRET}"
+      baseUrl: "${RHDH_BASE_URL}"
+      cors:
+        origin: "${RHDH_BASE_URL}"
+      csp:
+        upgrade-insecure-requests: false
+        img-src:
+          - "'self'"
+          - "data:"
+          - https://upload.wikimedia.org
+          - https://podman-desktop.io
+          - https://argo-cd.readthedocs.io
+          - https://instructlab.ai
+          - https://quay.io
+          - https://news.mit.edu
+      reading:
+        allow:
+          - host: example.com
+          - host: '*.mozilla.org'
+          - host: '*.openshift.com'
+          - host: '*.openshiftapps.com'
+          - host: '10.*:9090'
+          - host: '127.0.0.1:9090'
+          - host: '127.0.0.1:8080'
+          - host: '127.0.0.1:7070'
+          - host: 'localhost:9090'
+          - host: 'localhost:8080'
+          - host: 'localhost:7070'
+    signInPage: oidc
+    catalog:
+      rules:
+        - allow: [User, Group, System, Domain, Component, Resource, Location, Template, API]
+      locations:
+        - target: https://github.com/benwilcock/rhdh-techdocs/blob/main/rhdh-catalog-info.yaml
+          rules:
+            - allow: [Component, System]
+          type: url
+        - target: https://github.com/thepetk/ai-lab-template/blob/rolling-demo/all.yaml
+          type: url
+      providers:
+        modelCatalog:
+          development:
+            baseUrl: http://localhost:9090
+        github:
+          providerId:
+            organization: "fpetk-rolling-demo"
+            schedule:
+              frequency:
+                minutes: 1
+              initialDelay:
+                seconds: 15
+              timeout:
+                minutes: 15
+        githubOrg:
+          githubUrl: https://github.com
+          orgs: ["fpetk-rolling-demo"]
+          schedule:
+            frequency:
+              minutes: 30
+            initialDelay:
+              seconds: 15
+            timeout:
+              minutes: 15
+        keycloakOrg:
+          default:
+            baseUrl: "${KEYCLOAK_BASE_URL}"
+            loginRealm: "${KEYCLOAK_REALM}"
+            realm: "${KEYCLOAK_REALM}"
+            clientId: "${KEYCLOAK_CLIENT_ID}"
+            clientSecret: "${KEYCLOAK_CLIENT_SECRET}"
+            schedule:
+              frequency: { minutes: 1 }
+              timeout: { minutes: 1 }
+              initialDelay: { seconds: 15 }
+            signIn:
+              resolvers:
+                - resolver: emailMatchingUserEntityProfileEmail
+    permission:
+      enabled: false
+      rbac:
+        admin:
+          users:
+            - name: user:default/tpetkos
+            - name: user:default/gmontero
+            - name: user:default/jcollier
+            - name: user:default/jdubrick
+            - name: user:default/eyuen
+            - name: user:default/mvaldron
+            - name: user:default/yangcao
+            - name: user:default/mfaisal
+    integrations:
+      github:
+        - apps:
+            - appId: ${GITHUB_APP_APP_ID}
+              clientId: ${GITHUB_APP_CLIENT_ID}
+              clientSecret: ${GITHUB_APP_CLIENT_SECRET}
+              webhookUrl: ${GITHUB_APP_WEBHOOK_URL}
+              webhookSecret: ${GITHUB_APP_WEBHOOK_SECRET}
+              privateKey: |
+                ${GITHUB_APP_PRIVATE_KEY}
+          host: github.com
+    kubernetes:
+      clusterLocatorMethods:
+        - clusters:
+            - authProvider: serviceAccount
+              name: default
+              serviceAccountToken: ${K8S_CLUSTER_TOKEN}
+              skipTLSVerify: true
+              url: https://kubernetes.default.svc
+          type: config
+      customResources:
+        - apiVersion: v1beta1
+          group: tekton.dev
+          plural: pipelines
+        - apiVersion: v1beta1
+          group: tekton.dev
+          plural: pipelineruns
+        - apiVersion: v1beta1
+          group: tekton.dev
+          plural: taskruns
+        - apiVersion: v1
+          group: route.openshift.io
+          plural: routes
+      serviceLocatorMethod:
+        type: multiTenant
+    argocd:
+      username: ${ARGOCD_USER}
+      password: ${ARGOCD_PASSWORD}
+      waitCycles: 25
+      appLocatorMethods:
+      - type: 'config'
+        instances:
+          - name: default
+            url: https://${ARGOCD_HOSTNAME}
+            token: ${ARGOCD_API_TOKEN}
+    proxy:
+      endpoints:
+        "/developer-hub":
+          target: https://raw.githubusercontent.com
+          pathRewrite:
+            "^/api/proxy/developer-hub/learning-paths": "/redhat-developer/rhdh-plugins/refs/heads/main/workspaces/ai-integrations/plugins/ai-experience/src/learning-paths/data.json"
+          changeOrigin: true
+          secure: false
+        "/ai-rssfeed":
+          target: "https://news.mit.edu/topic/mitartificial-intelligence2-rss.xml"
+          changeOrigin: true
+          followRedirects: true
