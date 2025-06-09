@@ -31,6 +31,11 @@ spec:
     replicas: 1
     route:
       enabled: true
+      host:
+        valueFrom:
+          secretKeyRef:
+            name: rhdh-secrets
+            key: RHDH_BASE_URL
   database:
     enableLocalDb: true
   deployment:
