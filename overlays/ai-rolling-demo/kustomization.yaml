@@ -4,5 +4,6 @@ resources:
   - backstage.yaml
   - app-config.yaml
   - dynamic-plugins.yaml
+  - model-catalog-rbac.yaml
 
 namespace: rolling-demo-ns
