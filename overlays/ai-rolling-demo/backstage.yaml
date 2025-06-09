@@ -31,11 +31,7 @@ spec:
     replicas: 1
     route:
       enabled: true
-      host:
-        valueFrom:
-          secretKeyRef:
-            name: rhdh-secrets
-            key: RHDH_BASE_URL
+      host: https://rolling-demo-backstage-rolling-demo-ns.apps.tpetkos-aicluster01.devcluster.openshift.com
   database:
     enableLocalDb: true
   deployment:
