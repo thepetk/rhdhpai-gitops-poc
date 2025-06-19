@@ -4,7 +4,7 @@ metadata:
   name: ai-rolling-demo
 spec:
   application:
-    image: quay.io/rhdh/rhdh-hub-rhel9:1.6
+    image: quay.io/rhdh/rhdh-hub-rhel9:89ec38931e9ec396148a1b3eb8c86cdb369ef6f3.prefetch
     imagePullSecrets:
       - quay-pull-secret
     appConfig:
