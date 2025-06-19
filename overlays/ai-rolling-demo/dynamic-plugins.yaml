@@ -13,6 +13,8 @@ data:
     plugins:
       - package: ./dynamic-plugins/dist/red-hat-developer-hub-backstage-plugin-dynamic-home-page
         disabled: true
+      - package: ./dynamic-plugins/dist/backstage-plugin-mcp-actions-backend
+        disabled: true
       - package: ./dynamic-plugins/dist/red-hat-developer-hub-backstage-plugin-global-header
         disabled: true
       - package: oci://quay.io/karthik_jk/global-header:latest!red-hat-developer-hub-backstage-plugin-global-header
